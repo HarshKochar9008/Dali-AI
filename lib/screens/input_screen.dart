@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../services/astrology_api.dart';
-import '../widgets/kundali_chart.dart';
-import '../models/kundali_data.dart';
+import '../services/prokerala_api.dart';
+import '../models/prokerala_kundli_summary.dart';
+import 'chart_display_screen.dart';
+import '../services/storage_service.dart';
 
 class InputScreen extends StatefulWidget {
   const InputScreen({super.key});
@@ -17,11 +18,11 @@ class _InputScreenState extends State<InputScreen> {
   final _timeController = TextEditingController();
   final _latitudeController = TextEditingController();
   final _longitudeController = TextEditingController();
+  final _locationController = TextEditingController();
   
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   bool _isLoading = false;
-  KundaliData? _kundaliData;
   String? _errorMessage;
 
   @override
@@ -30,6 +31,7 @@ class _InputScreenState extends State<InputScreen> {
     _timeController.dispose();
     _latitudeController.dispose();
     _longitudeController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -122,7 +124,6 @@ class _InputScreenState extends State<InputScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _kundaliData = null;
     });
 
     try {
@@ -137,14 +138,42 @@ class _InputScreenState extends State<InputScreen> {
         _selectedTime!.minute,
       );
 
-      final kundaliData = await AstrologyApi.fetchKundaliData(
+      // Fetch summary from Prokerala `/v2/astrology/kundli`.
+      final prokeralaRaw = await ProkeralaApi.fetchKundli(
         birthDateTime: birthDateTime,
         latitude: lat,
         longitude: lon,
       );
+      final prokeralaSummary = ProkeralaKundliSummary.fromApiResponse(prokeralaRaw);
+
+      // Build chart data from Prokerala response (no FreeAstro API).
+      final kundaliData = ProkeralaApi.toKundaliData(prokeralaRaw);
+
+      // Auto-save to history
+      final location = _locationController.text.isEmpty 
+          ? 'Lat: $lat, Lon: $lon'
+          : _locationController.text;
+      await StorageService.saveKundali(
+        kundaliData,
+        birthDateTime,
+        location,
+      );
+
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChartDisplayScreen(
+              kundaliData: kundaliData,
+              prokeralaSummary: prokeralaSummary,
+              birthDateTime: birthDateTime,
+              location: location,
+            ),
+          ),
+        );
+      }
 
       setState(() {
-        _kundaliData = kundaliData;
         _isLoading = false;
       });
     } catch (e) {
@@ -159,113 +188,171 @@ class _InputScreenState extends State<InputScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kundali Chart Generator'),
-        backgroundColor: Colors.orange,
+        title: const Text('Generate Kundali'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _dateController,
-                decoration: const InputDecoration(
-                  labelText: 'Date of Birth (DD/MM/YYYY)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.calendar_today),
+          padding: const EdgeInsets.all(20.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _dateController,
+                  decoration: InputDecoration(
+                    labelText: 'Date of Birth',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    prefixIcon: const Icon(Icons.calendar_today_outlined),
+                  ),
+                  readOnly: true,
+                  onTap: () => _selectDate(context),
+                  validator: _validateDate,
                 ),
-                readOnly: true,
-                onTap: () => _selectDate(context),
-                validator: _validateDate,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _timeController,
-                decoration: const InputDecoration(
-                  labelText: 'Time of Birth (HH:MM, 24-hour)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.access_time),
-                ),
-                readOnly: true,
-                onTap: () => _selectTime(context),
-                validator: _validateTime,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _latitudeController,
-                decoration: const InputDecoration(
-                  labelText: 'Latitude (decimal)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.location_on),
-                ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                validator: _validateLatitude,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _longitudeController,
-                decoration: const InputDecoration(
-                  labelText: 'Longitude (decimal)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.location_on),
-                ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                validator: _validateLongitude,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _fetchKundali,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('Generate Kundali', style: TextStyle(fontSize: 16)),
-              ),
-              if (_errorMessage != null) ...[
                 const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade100,
-                    borderRadius: BorderRadius.circular(8),
+                TextFormField(
+                  controller: _timeController,
+                  decoration: InputDecoration(
+                    labelText: 'Time of Birth',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    prefixIcon: const Icon(Icons.access_time_outlined),
                   ),
-                  child: Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.red),
+                  readOnly: true,
+                  onTap: () => _selectTime(context),
+                  validator: _validateTime,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _latitudeController,
+                  decoration: InputDecoration(
+                    labelText: 'Latitude',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    prefixIcon: const Icon(Icons.location_on_outlined),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  validator: _validateLatitude,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _longitudeController,
+                  decoration: InputDecoration(
+                    labelText: 'Longitude',
+                    hintText: '77.2090',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    prefixIcon: const Icon(Icons.location_on_outlined),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  validator: _validateLongitude,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _locationController,
+                  decoration: InputDecoration(
+                    labelText: 'Location (Optional)',
+                    hintText: 'New Delhi, India',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    prefixIcon: const Icon(Icons.place_outlined),
                   ),
                 ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _fetchKundali,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black87,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.auto_awesome_outlined, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Generate',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                ),
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red.shade700),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: TextStyle(color: Colors.red.shade700),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
               ],
-              if (_kundaliData != null) ...[
-                const SizedBox(height: 24),
-                const Divider(),
-                const SizedBox(height: 16),
-                const Text(
-                  'Kundali Chart',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  constraints: const BoxConstraints(
-                    minHeight: 500,
-                    maxHeight: 600,
-                  ),
-                  child: KundaliChart(kundaliData: _kundaliData!),
-                ),
-              ],
-            ],
+            ),
           ),
         ),
-      ),
     );
   }
 }
