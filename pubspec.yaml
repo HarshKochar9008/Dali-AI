@@ -1,4 +1,4 @@
-name: kundali_app
+name: Misty_AI
 description: A Flutter app for rendering North Indian style Kundali charts
 publish_to: 'none'
 version: 1.0.0+1
@@ -13,6 +13,7 @@ dependencies:
   intl: ^0.20.2
   shared_preferences: ^2.2.2
   animations: ^2.0.11
+  flutter_svg: ^2.0.10+1
 
 dev_dependencies:
   flutter_test:

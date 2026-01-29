@@ -10,15 +10,10 @@ app.use(cors());
 app.use(express.json());
 
 const PROKERALA_BASE_URL = "https://api.prokerala.com";
-const SANDBOX_MODE = String(process.env.PROKERALA_SANDBOX || "").toLowerCase() === "true";
+const SANDBOX_MODE = String(process.env.SANDBOX_MODE || process.env.PROKERALA_SANDBOX || "").toLowerCase() === "true";
 
 function rewriteDatetimeForSandbox(datetime) {
-  // Sandbox mode restriction from Prokerala:
-  // "only January 1st is allowed — any time and any year is accepted."
-  // So rewrite month/day to 01-01 while preserving year/time/offset.
-  //
-  // Supports: YYYY-MM-DDTHH:mm:ss(+HH:MM|-HH:MM)
-  //           YYYY-MM-DDTHH:mm:ss.SSS(+HH:MM|-HH:MM)
+
   if (typeof datetime !== "string") return datetime;
   const m = datetime.match(
     /^(\d{4})-(\d{2})-(\d{2})(T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?)(Z|[+-]\d{2}:\d{2})?$/
@@ -72,9 +67,60 @@ app.get("/kundli", async (req, res) => {
     const token = await getAccessToken();
 
     const params = { ...req.query };
+    
+    // Validate required parameters
+    if (!params.ayanamsa) {
+      return res.status(400).json({
+        error: "Missing required parameter: ayanamsa",
+      });
+    }
+    if (!params.coordinates) {
+      return res.status(400).json({
+        error: "Missing required parameter: coordinates",
+      });
+    }
+    if (!params.datetime) {
+      return res.status(400).json({
+        error: "Missing required parameter: datetime",
+      });
+    }
+
+    // Validate coordinates format
+    const coordsMatch = params.coordinates.match(/^(-?\d+\.?\d*),(-?\d+\.?\d*)$/);
+    if (!coordsMatch) {
+      return res.status(400).json({
+        error: "Invalid coordinates format. Expected: latitude,longitude",
+        received: params.coordinates,
+      });
+    }
+    const lat = parseFloat(coordsMatch[1]);
+    const lon = parseFloat(coordsMatch[2]);
+    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      return res.status(400).json({
+        error: "Invalid coordinates. Latitude must be -90 to 90, longitude must be -180 to 180",
+        received: params.coordinates,
+      });
+    }
+
+    // Validate datetime format (ISO 8601 with timezone)
+    const datetimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/;
+    if (!datetimeRegex.test(params.datetime)) {
+      return res.status(400).json({
+        error: "Invalid datetime format. Expected ISO 8601 format: YYYY-MM-DDTHH:mm:ss+HH:MM or YYYY-MM-DDTHH:mm:ssZ",
+        received: params.datetime,
+      });
+    }
+
     if (SANDBOX_MODE && params.datetime) {
       params.datetime = rewriteDatetimeForSandbox(params.datetime);
     }
+
+    console.log(`[Kundli] Request params:`, {
+      ayanamsa: params.ayanamsa,
+      coordinates: params.coordinates,
+      datetime: params.datetime,
+      sandboxMode: SANDBOX_MODE,
+    });
 
     const response = await axios.get(`${PROKERALA_BASE_URL}/v2/astrology/kundli`, {
       headers: {
@@ -86,9 +132,136 @@ app.get("/kundli", async (req, res) => {
     res.json(response.data);
   } catch (err) {
     const status = err?.statusCode || err?.response?.status || 500;
+    const errorData = err?.response?.data;
+    const errorMessage = err?.message || String(err);
+    
+    console.error(`[Kundli] Error (${status}):`, {
+      message: errorMessage,
+      data: errorData,
+      requestParams: req.query,
+    });
+
     res.status(status).json({
       error: "Failed to fetch kundli",
+      details: errorData || errorMessage,
+      statusCode: status,
+    });
+  }
+});
+
+app.get("/charts", async (req, res) => {
+  try {
+    const token = await getAccessToken();
+
+    const params = { ...req.query };
+    if (SANDBOX_MODE && params.datetime) {
+      params.datetime = rewriteDatetimeForSandbox(params.datetime);
+    }
+
+    const response = await axios.get(`${PROKERALA_BASE_URL}/v2/astrology/chart`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params,
+      responseType: 'text', // SVG is returned as text
+    });
+
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.send(response.data);
+  } catch (err) {
+    const status = err?.statusCode || err?.response?.status || 500;
+    res.status(status).json({
+      error: "Failed to fetch chart",
       details: err?.response?.data || err?.message || String(err),
+    });
+  }
+});
+
+app.get("/planet-position", async (req, res) => {
+  try {
+    const token = await getAccessToken();
+
+    const params = { ...req.query };
+    
+    // Validate required parameters
+    if (!params.ayanamsa) {
+      return res.status(400).json({
+        error: "Missing required parameter: ayanamsa",
+      });
+    }
+    if (!params.coordinates) {
+      return res.status(400).json({
+        error: "Missing required parameter: coordinates",
+      });
+    }
+    if (!params.datetime) {
+      return res.status(400).json({
+        error: "Missing required parameter: datetime",
+      });
+    }
+
+    // Validate coordinates format
+    const coordsMatch = params.coordinates.match(/^(-?\d+\.?\d*),(-?\d+\.?\d*)$/);
+    if (!coordsMatch) {
+      return res.status(400).json({
+        error: "Invalid coordinates format. Expected: latitude,longitude",
+        received: params.coordinates,
+      });
+    }
+    const lat = parseFloat(coordsMatch[1]);
+    const lon = parseFloat(coordsMatch[2]);
+    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      return res.status(400).json({
+        error: "Invalid coordinates. Latitude must be -90 to 90, longitude must be -180 to 180",
+        received: params.coordinates,
+      });
+    }
+
+    // Validate datetime format (ISO 8601 with timezone)
+    const datetimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/;
+    if (!datetimeRegex.test(params.datetime)) {
+      return res.status(400).json({
+        error: "Invalid datetime format. Expected ISO 8601 format: YYYY-MM-DDTHH:mm:ss+HH:MM or YYYY-MM-DDTHH:mm:ssZ",
+        received: params.datetime,
+      });
+    }
+
+    if (SANDBOX_MODE && params.datetime) {
+      params.datetime = rewriteDatetimeForSandbox(params.datetime);
+    }
+
+    console.log(`[Planet Position] Request params:`, {
+      ayanamsa: params.ayanamsa,
+      coordinates: params.coordinates,
+      datetime: params.datetime,
+      planets: params.planets,
+      la: params.la,
+      sandboxMode: SANDBOX_MODE,
+    });
+
+    const response = await axios.get(`${PROKERALA_BASE_URL}/v2/astrology/planet-position`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params,
+    });
+
+    res.json(response.data);
+  } catch (err) {
+    const status = err?.statusCode || err?.response?.status || 500;
+    const errorData = err?.response?.data;
+    const errorMessage = err?.message || String(err);
+    
+    console.error(`[Planet Position] Error (${status}):`, {
+      message: errorMessage,
+      data: errorData,
+      requestParams: req.query,
+    });
+
+    res.status(status).json({
+      error: "Failed to fetch planet position",
+      details: errorData || errorMessage,
+      statusCode: status,
     });
   }
 });

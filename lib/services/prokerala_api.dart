@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/kundali_data.dart';
+import '../models/planet_position.dart';
 
 class ProkeralaApi {
   /// Base URL for the Node/Express proxy (NOT Prokerala directly).
@@ -71,9 +72,156 @@ class ProkeralaApi {
     );
 
     if (response.statusCode != 200) {
+      String errorDetails = 'Unknown error';
+      try {
+        final errorJson = jsonDecode(response.body) as Map<String, dynamic>;
+        errorDetails = errorJson['details']?.toString() ?? 
+                      errorJson['error']?.toString() ?? 
+                      response.body;
+      } catch (_) {
+        errorDetails = response.body;
+      }
       throw Exception(
         'Failed to fetch kundli via proxy '
-        '(status ${response.statusCode})',
+        '(status ${response.statusCode}): $errorDetails',
+      );
+    }
+
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    return decoded;
+  }
+
+  /// Fetches a chart SVG from Prokerala API via the proxy.
+  ///
+  /// Parameters:
+  /// - [birthDateTime]: Birth date and time
+  /// - [latitude]: Birth location latitude
+  /// - [longitude]: Birth location longitude
+  /// - [chartType]: Type of chart (rasi, navamsa, lagna, etc.)
+  /// - [chartStyle]: Chart style (north-indian, south-indian, east-indian)
+  /// - [ayanamsa]: Ayanamsa value (1=Lahiri, 3=Raman, 5=KP)
+  /// - [language]: Optional language code (en, hi, ta, te, ml)
+  /// - [upagrahaPosition]: Optional upagraha position (start, middle, end)
+  ///
+  /// Returns the SVG content as a string.
+  static Future<String> fetchChart({
+    required DateTime birthDateTime,
+    required double latitude,
+    required double longitude,
+    required String chartType,
+    required String chartStyle,
+    int ayanamsa = 1,
+    String? language,
+    String? upagrahaPosition,
+  }) async {
+    // Prokerala expects an ISO datetime that includes the local timezone offset.
+    // Use a strict format without fractional seconds:
+    // `YYYY-MM-DDTHH:mm:ss+HH:MM`
+    final isoString = '${birthDateTime.year.toString().padLeft(4, '0')}-'
+        '${_two(birthDateTime.month)}-'
+        '${_two(birthDateTime.day)}T'
+        '${_two(birthDateTime.hour)}:'
+        '${_two(birthDateTime.minute)}:'
+        '${_two(birthDateTime.second)}'
+        '${_formatTimezoneOffset(birthDateTime.timeZoneOffset)}';
+
+    final queryParameters = <String, String>{
+      'ayanamsa': ayanamsa.toString(),
+      'coordinates': '$latitude,$longitude',
+      'datetime': isoString,
+      'chart_type': chartType,
+      'chart_style': chartStyle,
+      'format': 'svg',
+    };
+
+    if (language != null && language.isNotEmpty) {
+      queryParameters['la'] = language;
+    }
+
+    if (upagrahaPosition != null && upagrahaPosition.isNotEmpty) {
+      queryParameters['upagraha_position'] = upagrahaPosition;
+    }
+
+    final url = Uri.parse('$_proxyBaseUrl/charts')
+        .replace(queryParameters: queryParameters);
+
+    final response = await http.get(
+      url,
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to fetch chart via proxy '
+        '(status ${response.statusCode}): ${response.body}',
+      );
+    }
+
+    return response.body;
+  }
+
+  /// Fetches planet positions from Prokerala API via the proxy.
+  ///
+  /// Parameters:
+  /// - [birthDateTime]: Birth date and time
+  /// - [latitude]: Birth location latitude
+  /// - [longitude]: Birth location longitude
+  /// - [ayanamsa]: Ayanamsa value (1=Lahiri, 3=Raman, 5=KP)
+  /// - [planets]: Optional comma-separated list of planet IDs (e.g., "0,1,100,102")
+  ///   If not provided, returns all planets excluding URANUS, NEPTUNE, and PLUTO.
+  /// - [language]: Optional language code (en, hi, ta, te, ml)
+  ///
+  /// Returns the decoded JSON response as a Map.
+  static Future<Map<String, dynamic>> fetchPlanetPosition({
+    required DateTime birthDateTime,
+    required double latitude,
+    required double longitude,
+    int ayanamsa = 1,
+    String? planets,
+    String? language,
+  }) async {
+    // Prokerala expects an ISO datetime that includes the local timezone offset.
+    final isoString = '${birthDateTime.year.toString().padLeft(4, '0')}-'
+        '${_two(birthDateTime.month)}-'
+        '${_two(birthDateTime.day)}T'
+        '${_two(birthDateTime.hour)}:'
+        '${_two(birthDateTime.minute)}:'
+        '${_two(birthDateTime.second)}'
+        '${_formatTimezoneOffset(birthDateTime.timeZoneOffset)}';
+
+    final queryParameters = <String, String>{
+      'ayanamsa': ayanamsa.toString(),
+      'coordinates': '$latitude,$longitude',
+      'datetime': isoString,
+    };
+
+    if (planets != null && planets.isNotEmpty) {
+      queryParameters['planets'] = planets;
+    }
+
+    if (language != null && language.isNotEmpty) {
+      queryParameters['la'] = language;
+    }
+
+    final url = Uri.parse('$_proxyBaseUrl/planet-position')
+        .replace(queryParameters: queryParameters);
+
+    final response = await http.get(
+      url,
+    );
+
+    if (response.statusCode != 200) {
+      String errorDetails = 'Unknown error';
+      try {
+        final errorJson = jsonDecode(response.body) as Map<String, dynamic>;
+        errorDetails = errorJson['details']?.toString() ?? 
+                      errorJson['error']?.toString() ?? 
+                      response.body;
+      } catch (_) {
+        errorDetails = response.body;
+      }
+      throw Exception(
+        'Failed to fetch planet position via proxy '
+        '(status ${response.statusCode}): $errorDetails',
       );
     }
 

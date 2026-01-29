@@ -168,6 +168,8 @@ class _InputScreenState extends State<InputScreen> {
               prokeralaSummary: prokeralaSummary,
               birthDateTime: birthDateTime,
               location: location,
+              latitude: lat,
+              longitude: lon,
             ),
           ),
         );
