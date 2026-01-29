@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'home_screen.dart';
+import '../theme/app_colors.dart';
+import 'onboarding_screen.dart';
 
 class StartScreen extends StatefulWidget {
   const StartScreen({super.key});
@@ -48,7 +49,7 @@ class _StartScreenState extends State<StartScreen>
       if (status == AnimationStatus.completed) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => const HomeScreen(),
+            builder: (context) => const OnboardingScreen(),
           ),
         );
       }
@@ -74,94 +75,111 @@ class _StartScreenState extends State<StartScreen>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    final size = MediaQuery.sizeOf(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF02010C),
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: AnimatedBuilder(
-                    animation: _controller,
-                    builder: (context, child) {
-                      return Opacity(
-                        opacity: _fadeAnimation.value,
-                        child: Transform.scale(
-                          scale: _scaleAnimation.value,
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(0xAA1E163D),
-                                blurRadius: 40,
-                                spreadRadius: 6,
+      backgroundColor: AppColors.surfaceBlack,
+      body: SizedBox(
+        width: size.width,
+        height: size.height,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'images/bg.png',
+              fit: BoxFit.cover,
+              width: size.width,
+              height: size.height,
+              alignment: Alignment.center,
+            ),
+            SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: AnimatedBuilder(
+                          animation: _controller,
+                          builder: (context, child) {
+                            return Opacity(
+                              opacity: _fadeAnimation.value,
+                              child: Transform.scale(
+                                scale: _scaleAnimation.value,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.headerViolet
+                                          .withOpacity(0.5),
+                                      blurRadius: 40,
+                                      spreadRadius: 6,
+                                    ),
+                                  ],
+                                ),
+                                child: ClipOval(
+                                  child: Image.asset(
+                                    'assets/Start.png',
+                                    width: 200,
+                                    height: 200,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+                              Text(
+                                'Misty AI',
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.displaySmall?.copyWith(
+                                  color: colorScheme.onBackground,
+                                  fontWeight: FontWeight.w300,
+                                  letterSpacing: 4,
+                                ),
                               ),
                             ],
                           ),
-                          child: ClipOval(
-                            child: Image.asset(
-                              'assets/Start.png',
-                              width: 200,
-                              height: 200,
-                              fit: BoxFit.cover,
-                            ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isAnimating ? null : _onGetStartedPressed,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Get Started',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward_rounded),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 32),
-                        Text(
-                          'Misty AI',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.displaySmall?.copyWith(
-                            color: colorScheme.onBackground,
-                            fontWeight: FontWeight.w300,
-                            letterSpacing: 4,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
                   ),
                 ),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isAnimating ? null : _onGetStartedPressed,
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Get Started',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward_rounded),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 }
-

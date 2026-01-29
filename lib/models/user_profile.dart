@@ -6,6 +6,7 @@ class UserProfile {
   final String locationName;
   final double? latitude;
   final double? longitude;
+  final String phone; // optional phone number
 
   const UserProfile({
     required this.fullName,
@@ -15,6 +16,7 @@ class UserProfile {
     required this.locationName,
     required this.latitude,
     required this.longitude,
+    this.phone = '',
   });
 
   static const empty = UserProfile(
@@ -25,6 +27,7 @@ class UserProfile {
     locationName: '',
     latitude: null,
     longitude: null,
+    phone: '',
   );
 
   Map<String, dynamic> toJson() {
@@ -36,6 +39,7 @@ class UserProfile {
       'locationName': locationName,
       'latitude': latitude,
       'longitude': longitude,
+      'phone': phone,
     };
   }
 
@@ -52,10 +56,13 @@ class UserProfile {
       dateOfBirth: parsedDob,
       timeOfBirth: (json['timeOfBirth'] ?? '') as String,
       locationName: (json['locationName'] ?? '') as String,
-      latitude: (json['latitude'] is num) ? (json['latitude'] as num).toDouble() : null,
-      longitude:
-          (json['longitude'] is num) ? (json['longitude'] as num).toDouble() : null,
+      latitude: (json['latitude'] is num)
+          ? (json['latitude'] as num).toDouble()
+          : null,
+      longitude: (json['longitude'] is num)
+          ? (json['longitude'] as num).toDouble()
+          : null,
+      phone: (json['phone'] ?? '') as String,
     );
   }
 }
-

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../widgets/prokerala_chart_widget.dart';
 import '../widgets/chart_selector_widget.dart';
 import '../models/kundali_data.dart';
@@ -54,8 +55,8 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
   Future<void> _checkIfSaved() async {
     final history = await StorageService.getHistory();
     setState(() {
-      _isSaved = history.any((item) => 
-        item.kundaliData.planets.length == widget.kundaliData.planets.length);
+      _isSaved = history.any((item) =>
+          item.kundaliData.planets.length == widget.kundaliData.planets.length);
     });
   }
 
@@ -78,8 +79,8 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
     }
   }
 
-
-  Future<void> _loadProkeralaChartWithCoords(double latitude, double longitude) async {
+  Future<void> _loadProkeralaChartWithCoords(
+      double latitude, double longitude) async {
     if (widget.birthDateTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -147,7 +148,8 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
 
       if (mounted) {
         setState(() {
-          _planetPositionResult = PlanetPositionResult.fromApiResponse(rawResponse);
+          _planetPositionResult =
+              PlanetPositionResult.fromApiResponse(rawResponse);
           _isLoadingPlanetPosition = false;
           _planetPositionError = null;
         });
@@ -174,7 +176,7 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
       _selectedChartStyle = chartStyle;
       _prokeralaChartSvg = null; // Reset chart when selection changes
     });
-    
+
     // Auto-load chart if coordinates are available
     if (widget.birthDateTime != null &&
         widget.latitude != null &&
@@ -232,6 +234,7 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
   }
 
   Widget _buildProkeralaChartTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -240,9 +243,11 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? AppColors.cardDark : Colors.white,
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(
+                  color: isDark ? AppColors.borderDark : Colors.grey.shade200,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,8 +258,7 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
                       'Birth Date',
                       '${widget.birthDateTime!.day}/${widget.birthDateTime!.month}/${widget.birthDateTime!.year}',
                     ),
-                  if (widget.birthDateTime != null)
-                    const SizedBox(height: 8),
+                  if (widget.birthDateTime != null) const SizedBox(height: 8),
                   if (widget.birthDateTime != null)
                     _buildInfoRow(
                       Icons.access_time,
@@ -276,9 +280,11 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? AppColors.cardDark : Colors.white,
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(
+                color: isDark ? AppColors.borderDark : Colors.grey.shade200,
+              ),
             ),
             child: ChartSelectorWidget(
               selectedChartType: _selectedChartType,
@@ -296,9 +302,11 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? AppColors.cardDark : Colors.white,
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(
+                  color: isDark ? AppColors.borderDark : Colors.grey.shade200,
+                ),
               ),
               child: Column(
                 children: [
@@ -419,11 +427,13 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
             ),
           if (chandra?.name != null) ...[
             const SizedBox(height: 8),
-            _buildInfoRow(Icons.circle_outlined, 'Chandra Rasi', chandra!.name!),
+            _buildInfoRow(
+                Icons.circle_outlined, 'Chandra Rasi', chandra!.name!),
           ],
           if (soorya?.name != null) ...[
             const SizedBox(height: 8),
-            _buildInfoRow(Icons.wb_sunny_outlined, 'Soorya Rasi', soorya!.name!),
+            _buildInfoRow(
+                Icons.wb_sunny_outlined, 'Soorya Rasi', soorya!.name!),
           ],
           if (zodiac?.name != null) ...[
             const SizedBox(height: 8),
@@ -434,9 +444,13 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
             Row(
               children: [
                 Icon(
-                  mangal.hasDosha ? Icons.warning_amber_outlined : Icons.check_circle_outline,
+                  mangal.hasDosha
+                      ? Icons.warning_amber_outlined
+                      : Icons.check_circle_outline,
                   size: 18,
-                  color: mangal.hasDosha ? Colors.red.shade700 : Colors.green.shade700,
+                  color: mangal.hasDosha
+                      ? Colors.red.shade700
+                      : Colors.green.shade700,
                 ),
                 const SizedBox(width: 10),
                 Text(
@@ -445,7 +459,8 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
                 ),
               ],
             ),
-            if (mangal.description != null && mangal.description!.isNotEmpty) ...[
+            if (mangal.description != null &&
+                mangal.description!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
                 mangal.description!,
@@ -474,8 +489,11 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
                     ),
                     Expanded(
                       child: Text(
-                        title.isEmpty ? desc : (desc.isEmpty ? title : '$title — $desc'),
-                        style: TextStyle(color: Colors.grey.shade700, height: 1.25),
+                        title.isEmpty
+                            ? desc
+                            : (desc.isEmpty ? title : '$title — $desc'),
+                        style: TextStyle(
+                            color: Colors.grey.shade700, height: 1.25),
                       ),
                     ),
                   ],
@@ -539,7 +557,8 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
             runSpacing: 12,
             children: widget.kundaliData.planets.map((planet) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(4),
@@ -552,7 +571,8 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.black87,
                         borderRadius: BorderRadius.circular(4),
@@ -654,7 +674,8 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
     }
 
     // Show data if available
-    if (_planetPositionResult != null && _planetPositionResult!.planets.isNotEmpty) {
+    if (_planetPositionResult != null &&
+        _planetPositionResult!.planets.isNotEmpty) {
       return _buildPlanetPositionDetails(_planetPositionResult!);
     }
 
@@ -813,7 +834,8 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
                   ),
                   const SizedBox(height: 12),
                   if (planet.sign != null)
-                    _buildDetailRow('Sign', planet.sign!.name ?? planet.sign!.vedicName ?? 'N/A'),
+                    _buildDetailRow('Sign',
+                        planet.sign!.name ?? planet.sign!.vedicName ?? 'N/A'),
                   if (planet.house != null)
                     _buildDetailRow('House', planet.house!.name ?? 'N/A'),
                   if (planet.nakshatra != null) ...[
@@ -824,7 +846,9 @@ class _ChartDisplayScreenState extends State<ChartDisplayScreen> {
                     if (planet.nakshatra!.lord != null)
                       _buildDetailRow(
                         'Nakshatra Lord',
-                        planet.nakshatra!.lord!.name ?? planet.nakshatra!.lord!.vedicName ?? 'N/A',
+                        planet.nakshatra!.lord!.name ??
+                            planet.nakshatra!.lord!.vedicName ??
+                            'N/A',
                       ),
                   ],
                   if (planet.longitude != null)

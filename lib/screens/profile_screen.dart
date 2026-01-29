@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
+import '../theme/app_colors.dart';
 import '../models/user_profile.dart';
 import '../services/storage_service.dart';
 import 'about_screen.dart';
-import 'chart_display_screen.dart';
+import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -15,233 +15,24 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _formKey = GlobalKey<FormState>();
-
-  final _nameController = TextEditingController();
-  final _dobController = TextEditingController();
-  final _tobController = TextEditingController();
-  final _locationController = TextEditingController();
-  final _latController = TextEditingController();
-  final _lonController = TextEditingController();
-
-  DateTime? _selectedDob;
-  TimeOfDay? _selectedTob;
-  String _gender = '';
-
   bool _loading = true;
-  bool _saving = false;
-
-  List<HistoryItem> _history = [];
-  bool _historyLoading = true;
+  UserProfile _profile = UserProfile.empty;
+  int _selectedTab = 0; // 0 = Personal Info, 1 = Settings
 
   @override
   void initState() {
     super.initState();
-    _loadAll();
+    _loadProfile();
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _dobController.dispose();
-    _tobController.dispose();
-    _locationController.dispose();
-    _latController.dispose();
-    _lonController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadAll() async {
-    setState(() {
-      _loading = true;
-      _historyLoading = true;
-    });
-
+  Future<void> _loadProfile() async {
+    setState(() => _loading = true);
     final profile = await StorageService.getProfile();
-    final history = await StorageService.getHistory();
-
     if (!mounted) return;
-
-    _nameController.text = profile.fullName;
-    _gender = profile.gender;
-
-    _selectedDob = profile.dateOfBirth;
-    _dobController.text = _selectedDob == null
-        ? ''
-        : DateFormat('dd/MM/yyyy').format(_selectedDob!);
-
-    if (profile.timeOfBirth.isNotEmpty) {
-      _tobController.text = profile.timeOfBirth;
-      final parts = profile.timeOfBirth.split(':');
-      if (parts.length == 2) {
-        final h = int.tryParse(parts[0]);
-        final m = int.tryParse(parts[1]);
-        if (h != null && m != null) {
-          _selectedTob = TimeOfDay(hour: h, minute: m);
-        }
-      }
-    } else {
-      _tobController.text = '';
-      _selectedTob = null;
-    }
-
-    _locationController.text = profile.locationName;
-    _latController.text = profile.latitude?.toString() ?? '';
-    _lonController.text = profile.longitude?.toString() ?? '';
-
     setState(() {
-      _history = history;
+      _profile = profile;
       _loading = false;
-      _historyLoading = false;
     });
-  }
-
-  Future<void> _pickDob() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDob ?? DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null) {
-      setState(() {
-        _selectedDob = picked;
-        _dobController.text = DateFormat('dd/MM/yyyy').format(picked);
-      });
-    }
-  }
-
-  Future<void> _pickTob() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedTob ?? TimeOfDay.now(),
-    );
-    if (picked != null) {
-      setState(() {
-        _selectedTob = picked;
-        _tobController.text =
-            '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-      });
-    }
-  }
-
-  String? _validateName(String? v) {
-    if (v == null || v.trim().isEmpty) return 'Please enter full name';
-    return null;
-  }
-
-  String? _validateDob(String? v) {
-    if (_selectedDob == null) return 'Please select date of birth';
-    return null;
-  }
-
-  String? _validateTob(String? v) {
-    if (v == null || v.isEmpty) return 'Please select time of birth';
-    final timeRegex = RegExp(r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$');
-    if (!timeRegex.hasMatch(v)) return 'Enter time in HH:MM (24-hour)';
-    return null;
-  }
-
-  String? _validateLat(String? v) {
-    if (v == null || v.trim().isEmpty) return null;
-    final lat = double.tryParse(v.trim());
-    if (lat == null) return 'Enter valid latitude';
-    if (lat < -90 || lat > 90) return 'Latitude must be between -90 and 90';
-    return null;
-  }
-
-  String? _validateLon(String? v) {
-    if (v == null || v.trim().isEmpty) return null;
-    final lon = double.tryParse(v.trim());
-    if (lon == null) return 'Enter valid longitude';
-    if (lon < -180 || lon > 180) return 'Longitude must be between -180 and 180';
-    return null;
-  }
-
-  Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_gender.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select gender')),
-      );
-      return;
-    }
-
-    setState(() => _saving = true);
-
-    final lat = _latController.text.trim().isEmpty
-        ? null
-        : double.tryParse(_latController.text.trim());
-    final lon = _lonController.text.trim().isEmpty
-        ? null
-        : double.tryParse(_lonController.text.trim());
-
-    final profile = UserProfile(
-      fullName: _nameController.text.trim(),
-      gender: _gender,
-      dateOfBirth: _selectedDob,
-      timeOfBirth: _tobController.text.trim(),
-      locationName: _locationController.text.trim(),
-      latitude: lat,
-      longitude: lon,
-    );
-
-    await StorageService.saveProfile(profile);
-
-    if (!mounted) return;
-    setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile saved')),
-    );
-  }
-
-  Future<void> _deleteHistoryItem(int index) async {
-    await StorageService.deleteHistoryItem(index);
-    final history = await StorageService.getHistory();
-    if (!mounted) return;
-    setState(() => _history = history);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Chart deleted'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-
-  Future<void> _clearAllHistory() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear All History?'),
-        content: const Text(
-          'This will delete all saved charts. This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Clear All'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await StorageService.clearHistory();
-      final history = await StorageService.getHistory();
-      if (!mounted) return;
-      setState(() => _history = history);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('All history cleared'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 
   @override
@@ -252,334 +43,554 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final displayName =
+        _profile.fullName.trim().isEmpty ? 'Profile' : _profile.fullName;
+    final displayPhone =
+        _profile.phone.trim().isEmpty ? '9876543210' : _profile.phone;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        actions: [
-          IconButton(
-            onPressed: _saving ? null : _saveProfile,
-            tooltip: 'Save',
-            icon: const Icon(Icons.save_rounded),
+      backgroundColor: AppColors.surfaceBlack,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            backgroundColor: AppColors.headerViolet,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: const Text(
+              'My Profile',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.notifications_none,
+                          color: AppColors.headerViolet, size: 22),
+                    ),
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: AppColors.headerViolet,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadAll,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text(
-              'Basic Details',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        controller: _nameController,
-                        textInputAction: TextInputAction.next,
-                        decoration: const InputDecoration(
-                          labelText: 'Full Name',
-                          prefixIcon: Icon(Icons.person_outline),
-                        ),
-                        validator: _validateName,
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: _gender.isEmpty ? null : _gender,
-                        decoration: const InputDecoration(
-                          labelText: 'Gender',
-                          prefixIcon: Icon(Icons.wc_rounded),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'Male', child: Text('Male')),
-                          DropdownMenuItem(value: 'Female', child: Text('Female')),
-                          DropdownMenuItem(value: 'Other', child: Text('Other')),
-                        ],
-                        onChanged: (v) => setState(() => _gender = v ?? ''),
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _dobController,
-                        readOnly: true,
-                        onTap: _pickDob,
-                        decoration: const InputDecoration(
-                          labelText: 'Date of Birth',
-                          prefixIcon: Icon(Icons.calendar_today_outlined),
-                        ),
-                        validator: _validateDob,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _tobController,
-                        readOnly: true,
-                        onTap: _pickTob,
-                        decoration: const InputDecoration(
-                          labelText: 'Time of Birth',
-                          prefixIcon: Icon(Icons.access_time_outlined),
-                        ),
-                        validator: _validateTob,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _locationController,
-                        textInputAction: TextInputAction.next,
-                        decoration: const InputDecoration(
-                          labelText: 'Birth Place (City/Country)',
-                          prefixIcon: Icon(Icons.place_outlined),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _latController,
-                              keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true,
-                                signed: true,
-                              ),
-                              decoration: const InputDecoration(
-                                labelText: 'Latitude (optional)',
-                              ),
-                              validator: _validateLat,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _lonController,
-                              keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true,
-                                signed: true,
-                              ),
-                              decoration: const InputDecoration(
-                                labelText: 'Longitude (optional)',
-                              ),
-                              validator: _validateLon,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _saving ? null : _saveProfile,
-                          icon: _saving
-                              ? const SizedBox(
-                                  height: 18,
-                                  width: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.save_rounded),
-                          label: const Text('Save Profile'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          SliverToBoxAdapter(
+            child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                Text(
-                  'History',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (_history.isNotEmpty)
-                  TextButton.icon(
-                    onPressed: _clearAllHistory,
-                    icon: const Icon(Icons.delete_sweep_rounded, size: 18),
-                    label: const Text('Clear'),
-                    style: TextButton.styleFrom(foregroundColor: Colors.red),
-                  ),
+                _buildVioletHeader(),
+                _buildProfileCard(displayName, displayPhone),
+                _buildProfileAvatar(),
               ],
             ),
-            const SizedBox(height: 8),
-            if (_historyLoading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_history.isEmpty)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Icon(Icons.history, color: colorScheme.onSurface.withOpacity(0.6)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'No saved charts yet. Generate a kundali to see it here.',
-                          style: TextStyle(
-                            color: colorScheme.onSurface.withOpacity(0.8),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              ...List.generate(_history.length, (index) {
-                final item = _history[index];
-                final date = item.dateTime;
-                final dateStr = '${date.day}/${date.month}/${date.year}';
-                final timeStr =
-                    '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ChartDisplayScreen(
-                            kundaliData: item.kundaliData,
-                            birthDateTime: item.dateTime,
-                            location: item.location,
-                          ),
-                        ),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.auto_awesome_outlined,
-                            color: colorScheme.primary,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Kundali Chart',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Wrap(
-                                  spacing: 12,
-                                  runSpacing: 6,
-                                  children: [
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.calendar_today, size: 14, color: colorScheme.onSurface.withOpacity(0.6)),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          dateStr,
-                                          style: TextStyle(color: colorScheme.onSurface.withOpacity(0.8)),
-                                        ),
-                                      ],
-                                    ),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.access_time, size: 14, color: colorScheme.onSurface.withOpacity(0.6)),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          timeStr,
-                                          style: TextStyle(color: colorScheme.onSurface.withOpacity(0.8)),
-                                        ),
-                                      ],
-                                    ),
-                                    if (item.location.isNotEmpty)
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.location_on, size: 14, color: colorScheme.onSurface.withOpacity(0.6)),
-                                          const SizedBox(width: 6),
-                                          ConstrainedBox(
-                                            constraints: const BoxConstraints(maxWidth: 180),
-                                            child: Text(
-                                              item.location,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(color: colorScheme.onSurface.withOpacity(0.8)),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                            onPressed: () => _deleteHistoryItem(index),
-                            tooltip: 'Delete',
-                          ),
-                        ],
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildMenuList(),
+                  const SizedBox(height: 24),
+                  _buildLogoutButton(),
+                  const SizedBox(height: 28),
+                  const Center(
+                    child: Text(
+                      'Follow us on',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.white54,
                       ),
                     ),
                   ),
-                );
-              }),
-            const SizedBox(height: 8),
-            Text(
-              'App',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: Icon(Icons.settings_rounded, color: colorScheme.primary),
-                    title: const Text('Settings'),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                      );
-                    },
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: Icon(Icons.info_outline_rounded, color: colorScheme.primary),
-                    title: const Text('About'),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AboutScreen()),
-                      );
-                    },
+                  const SizedBox(height: 12),
+                  _buildSocialIcons(),
+                  const SizedBox(height: 20),
+                  const Center(
+                    child: Text(
+                      'App version 1.0',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white38,
+                      ),
+                    ),
                   ),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVioletHeader() {
+    return Container(
+      height: 140,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.headerViolet,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -30,
+            right: -20,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.12),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 20,
+            left: -40,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.accentViolet.withOpacity(0.2),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileCard(String displayName, String displayPhone) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 80, 20, 0),
+      padding: const EdgeInsets.fromLTRB(20, 64, 20, 20),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            displayName,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.phone_android,
+                  size: 16, color: AppColors.accentViolet),
+              const SizedBox(width: 6),
+              Text(
+                displayPhone,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() => _selectedTab = 0);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const EditProfileScreen(),
+                      ),
+                    ).then((_) => _loadProfile());
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _selectedTab == 0
+                          ? AppColors.accentViolet.withOpacity(0.25)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Personal Info',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color:
+                            _selectedTab == 0 ? Colors.white : Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() => _selectedTab = 1);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SettingsScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _selectedTab == 1
+                          ? AppColors.accentViolet.withOpacity(0.25)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Settings',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color:
+                            _selectedTab == 1 ? Colors.white : Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileAvatar() {
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: 35,
+      child: Center(
+        child: Container(
+          width: 90,
+          height: 90,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+                color: AppColors.accentViolet.withOpacity(0.6), width: 3),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.4),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipOval(
+            child: _profile.fullName.trim().isEmpty
+                ? Container(
+                    color: AppColors.headerViolet,
+                    child: const Icon(
+                      Icons.person,
+                      size: 44,
+                      color: Colors.white,
+                    ),
+                  )
+                : Container(
+                    color: AppColors.headerViolet,
+                    alignment: Alignment.center,
+                    child: Text(
+                      _profile.fullName.trim().isNotEmpty
+                          ? _profile.fullName
+                              .trim()
+                              .substring(0, 1)
+                              .toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuList() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: Column(
+          children: [
+            _buildExpandableItem(
+              title: 'FAQ',
+              icon: Icons.help_outline,
+              content:
+                  'Find answers to common questions about Kundali, chart generation, and birth details.',
+              onTap: () {},
+            ),
+            Divider(height: 1, color: Colors.white.withOpacity(0.08)),
+            _buildExpandableItem(
+              title: 'Feedbacks & Support',
+              icon: Icons.feedback_outlined,
+              content:
+                  'Share your feedback or get help from our support team. We\'re here to assist you.',
+              onTap: () {},
+            ),
+            Divider(height: 1, color: Colors.white.withOpacity(0.08)),
+            _buildExpandableItem(
+              title: 'Terms & Conditions',
+              icon: Icons.description_outlined,
+              content:
+                  'Read our terms of service and conditions for using the Kundali app.',
+              onTap: () {},
+            ),
+            Divider(height: 1, color: Colors.white.withOpacity(0.08)),
+            _buildExpandableItem(
+              title: 'Privacy',
+              icon: Icons.privacy_tip_outlined,
+              content:
+                  'Learn how we collect, use, and protect your personal data and chart information.',
+              onTap: () {},
+            ),
+            Divider(height: 1, color: Colors.white.withOpacity(0.08)),
+            _buildExpandableItem(
+              title: 'About Us',
+              icon: Icons.info_outline_rounded,
+              content:
+                  'Discover more about our app and the team behind Kundali.',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AboutScreen()),
+                );
+              },
+            ),
+            Divider(height: 1, color: Colors.white.withOpacity(0.08)),
+            _buildExpandableItem(
+              title: 'Contact US',
+              icon: Icons.contact_support_outlined,
+              content:
+                  'Reach out to us for inquiries, partnerships, or general contact.',
+              onTap: () {},
             ),
           ],
         ),
       ),
     );
   }
-}
 
+  Widget _buildExpandableItem({
+    required String title,
+    required IconData icon,
+    required String content,
+    required VoidCallback onTap,
+  }) {
+    return ExpansionTile(
+      tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      leading:
+          Icon(icon, color: AppColors.accentViolet.withOpacity(0.9), size: 22),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 15,
+          color: Colors.white,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      trailing: Icon(
+        Icons.keyboard_arrow_down,
+        color: AppColors.accentViolet.withOpacity(0.8),
+        size: 24,
+      ),
+      iconColor: AppColors.accentViolet.withOpacity(0.8),
+      collapsedIconColor: AppColors.accentViolet.withOpacity(0.8),
+      onExpansionChanged: (_) {},
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            content,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.white.withOpacity(0.8),
+              height: 1.4,
+            ),
+          ),
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: onTap,
+            icon: Icon(Icons.open_in_new,
+                size: 16, color: AppColors.accentViolet),
+            label: Text('Open',
+                style: TextStyle(color: AppColors.accentViolet, fontSize: 13)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handleLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Logout',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'Are you sure you want to logout? Your profile data will be cleared from this device.',
+          style: TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child:
+                Text('Cancel', style: TextStyle(color: AppColors.accentViolet)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.accentViolet,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+    await StorageService.clearProfile();
+    if (!mounted) return;
+    setState(() {
+      _profile = UserProfile.empty;
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('You have been logged out'),
+        backgroundColor: AppColors.cardDark,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return OutlinedButton.icon(
+      onPressed: _handleLogout,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.accentViolet,
+        side: BorderSide(color: AppColors.accentViolet.withOpacity(0.8)),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      icon: Icon(Icons.power_settings_new,
+          color: AppColors.accentViolet, size: 20),
+      label: const Text('Logout',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+    );
+  }
+
+  Widget _buildSocialIcons() {
+    final letters = ['f', 'i', '𝕏', 'P'];
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(4, (i) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {},
+              customBorder: const CircleBorder(),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.accentViolet.withOpacity(0.2),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  letters[i],
+                  style: TextStyle(
+                    fontSize: i == 2 ? 18 : 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.accentViolet,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}

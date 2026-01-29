@@ -121,57 +121,70 @@ curl -H "Authorization: Bearer <ACCESS_TOKEN>" \
 
 ## Setup Instructions
 
-1. Install Flutter SDK (latest stable version)
-2. Clone or download this project
-3. Update API credentials in `lib/services/astrology_api.dart`
-4. Run `flutter pub get` to install dependencies
-5. Run `flutter run` to start the app
+1. Install Flutter SDK (latest stable version).
+2. Clone or download this project.
+3. **API credentials (Prokerala):** The app talks to a small Node proxy (`kundli-proxy/`) that holds your Prokerala OAuth credentials.  
+   - In `kundli-proxy/`, create a `.env` file with:
+     - `PROKERALA_CLIENT_ID` — from your Prokerala free trial account
+     - `PROKERALA_CLIENT_SECRET`
+   - Start the proxy: `cd kundli-proxy && npm install && node index.js` (default port 3000).
+4. **Flutter:** Run `flutter pub get`, then `flutter run`.  
+   - For Android emulator, point the app at the proxy with:  
+     `flutter run --dart-define=KUNDLI_PROXY_BASE_URL=http://10.0.2.2:3000`  
+   - For Chrome/desktop: `flutter run -d chrome --dart-define=KUNDLI_PROXY_BASE_URL=http://localhost:3000`
+5. Enter birth details on the input screen and tap **Generate** to fetch kundali data and view the custom-drawn North Indian chart.
 
-## Validation
+## Validation (vs app.atri.care)
 
-### Test Birth Details Used:
-- **Date:** 15/01/1990
-- **Time:** 10:30 (24-hour format)
-- **Latitude:** 28.6139 (Delhi, India)
-- **Longitude:** 77.2090 (Delhi, India)
+**Birth details used for validation:**
+- **Date of Birth:** 15/01/1990 (DD/MM/YYYY)
+- **Time of Birth:** 10:30 (24-hour format)
+- **Latitude:** 28.6139 (decimal, Delhi, India)
+- **Longitude:** 77.2090 (decimal, Delhi, India)
 
-### Validation Against app.atri.care:
+**Validation process:**  
+The **custom-drawn North Indian Kundali** (CustomPainter) output was compared with https://app.atri.care using the same birth details.
 
-The kundali output was validated against https://app.atri.care using the above birth details.
+1. Entered the above details in this app and in app.atri.care.
+2. Compared house placements for all 12 houses.
+3. Verified planetary positions (Su, Mo, Ma, Me, Ju, Ve, Sa, Ra, Ke) in each house.
+4. Cross-checked zodiac signs per house.
 
-**Validation Process:**
-1. Entered the same birth details in both the app and app.atri.care
-2. Compared house placements for all 12 houses
-3. Verified planetary positions in each house
-4. Cross-checked zodiac signs assigned to each house
+**Result:**  
+- House placements: **Matched** ✓  
+- Planetary positions: **Matched** ✓  
+- Zodiac signs per house: **Matched** ✓  
 
-**Results:**
-- House placements: Matched ✓
-- Planetary positions: Matched ✓
-- Zodiac signs per house: Matched ✓
-
-**Note:** Minor differences may occur due to:
-- Different calculation methods (Ayanamsa differences between Lahiri and other systems)
-- API response format variations
-- Rounding differences in coordinates or time
-- Different house systems (Placidus vs Whole Sign)
-
-The app uses Placidus house system by default, which may differ from Whole Sign system used by some Vedic astrology platforms.
+**Note on differences:**  
+Minor differences can occur due to Ayanamsa (e.g. Lahiri vs Raman), house system (Placidus vs Whole Sign), or rounding of time/coordinates. This app uses Prokerala API (Lahiri, Placidus). If you see a small mismatch, note the house system and Ayanamsa used on app.atri.care for comparison.
 
 ## Project Structure
 
 ```
 lib/
-├── main.dart                 # App entry point
+├── main.dart                    # App entry point, theme (dark/light)
 ├── models/
-│   └── kundali_data.dart    # Data models
+│   ├── kundali_data.dart        # KundaliData, HouseData, PlanetData
+│   ├── planet_position.dart     # PlanetPositionResult, SignDetails, etc.
+│   ├── prokerala_kundli_summary.dart
+│   └── user_profile.dart
 ├── screens/
-│   └── input_screen.dart    # User input screen
+│   ├── input_screen.dart        # User input (DOB, time, lat, long)
+│   ├── chart_display_screen.dart # Chart view + summary + planet details
+│   ├── home_screen.dart
+│   ├── profile_screen.dart
+│   ├── start_screen.dart
+│   └── ...
 ├── services/
-│   └── astrology_api.dart   # API integration
+│   ├── prokerala_api.dart       # API calls via kundli-proxy
+│   └── storage_service.dart
 └── widgets/
-    ├── kundali_chart.dart   # Chart widget
-    └── kundali_painter.dart # Custom painter for rendering
+    ├── kundali_chart.dart       # Custom Kundali widget (wraps painter)
+    ├── kundali_painter.dart     # CustomPainter — 12 houses, signs, planets
+    ├── chart_selector_widget.dart
+    └── prokerala_chart_widget.dart  # Optional reference (API SVG)
+kundli-proxy/                    # Node proxy for Prokerala OAuth + endpoints
+└── index.js
 ```
 
 ## Dependencies

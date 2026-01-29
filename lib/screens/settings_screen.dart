@@ -23,122 +23,127 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('Settings'),
       ),
       body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildSectionHeader('Appearance'),
-            _buildSettingCard(
-              icon: Icons.dark_mode_rounded,
-              title: 'Dark Mode',
-              subtitle: 'Switch between light and dark theme',
-              trailing: Switch(
-                value: isDark,
-                onChanged: (value) {
-                  final appState =
-                      context.findAncestorStateOfType<KundaliAppState>();
-                  appState?.setDarkMode(value);
-                },
-                activeColor: colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildSectionHeader('Chart Settings'),
-            _buildSettingCard(
-              icon: Icons.save_rounded,
-              title: 'Auto Save',
-              subtitle: 'Automatically save generated charts',
-              trailing: Switch(
-                value: _autoSave,
-                onChanged: (value) {
-                  setState(() {
-                    _autoSave = value;
-                  });
-                },
-                activeColor: colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildSectionHeader('Notifications'),
-            _buildSettingCard(
-              icon: Icons.notifications_rounded,
-              title: 'Push Notifications',
-              subtitle: 'Receive updates and reminders',
-              trailing: Switch(
-                value: _notifications,
-                onChanged: (value) {
-                  setState(() {
-                    _notifications = value;
-                  });
-                },
-                activeColor: colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildSectionHeader('About'),
-            _buildSettingCard(
-              icon: Icons.info_rounded,
-              title: 'App Version',
-              subtitle: '1.0.0',
-              trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-              onTap: () {},
-            ),
-            _buildSettingCard(
-              icon: Icons.privacy_tip_rounded,
-              title: 'Privacy Policy',
-              subtitle: 'How we handle your data',
-              trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Privacy policy coming soon!'),
-                  ),
-                );
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildSectionHeader('Appearance'),
+          _buildSettingCard(
+            icon: Icons.dark_mode_rounded,
+            title: 'Dark Mode',
+            subtitle: 'Switch between light and dark theme',
+            trailing: Switch(
+              value: isDark,
+              onChanged: (value) {
+                final appState =
+                    context.findAncestorStateOfType<KundaliAppState>();
+                appState?.setDarkMode(value);
               },
+              activeColor: colorScheme.primary,
             ),
-            _buildSettingCard(
-              icon: Icons.description_rounded,
-              title: 'Terms of Service',
-              subtitle: 'Terms and conditions',
-              trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Terms of service coming soon!'),
-                  ),
-                );
+          ),
+          const SizedBox(height: 16),
+          _buildSectionHeader('Chart Settings'),
+          _buildSettingCard(
+            icon: Icons.save_rounded,
+            title: 'Auto Save',
+            subtitle: 'Automatically save generated charts',
+            trailing: Switch(
+              value: _autoSave,
+              onChanged: (value) {
+                setState(() {
+                  _autoSave = value;
+                });
               },
+              activeColor: colorScheme.primary,
             ),
-            const SizedBox(height: 32),
-            Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.favorite_outline, size: 14, color: Colors.white60),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Made for astrology enthusiasts',
-                    style: TextStyle(
-                      color: Colors.white60,
-                      fontSize: 13,
-                    ),
+          ),
+          const SizedBox(height: 16),
+          _buildSectionHeader('Notifications'),
+          _buildSettingCard(
+            icon: Icons.notifications_rounded,
+            title: 'Push Notifications',
+            subtitle: 'Receive updates and reminders',
+            trailing: Switch(
+              value: _notifications,
+              onChanged: (value) {
+                setState(() {
+                  _notifications = value;
+                });
+              },
+              activeColor: colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildSectionHeader('About'),
+          _buildSettingCard(
+            icon: Icons.info_rounded,
+            title: 'App Version',
+            subtitle: '1.0.0',
+            trailing: Icon(Icons.chevron_right,
+                color: colorScheme.onSurface.withOpacity(0.5)),
+            onTap: () {},
+          ),
+          _buildSettingCard(
+            icon: Icons.privacy_tip_rounded,
+            title: 'Privacy Policy',
+            subtitle: 'How we handle your data',
+            trailing: Icon(Icons.chevron_right,
+                color: colorScheme.onSurface.withOpacity(0.5)),
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Privacy policy coming soon!'),
+                ),
+              );
+            },
+          ),
+          _buildSettingCard(
+            icon: Icons.description_rounded,
+            title: 'Terms of Service',
+            subtitle: 'Terms and conditions',
+            trailing: Icon(Icons.chevron_right,
+                color: colorScheme.onSurface.withOpacity(0.5)),
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Terms of service coming soon!'),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 32),
+          Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.favorite_outline,
+                    size: 14, color: colorScheme.onSurface.withOpacity(0.6)),
+                const SizedBox(width: 4),
+                Text(
+                  'Made for astrology enthusiasts',
+                  style: TextStyle(
+                    color: colorScheme.onSurface.withOpacity(0.6),
+                    fontSize: 13,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 
   Widget _buildSectionHeader(String title) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, top: 8),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.white,
+          color: colorScheme.onSurface,
         ),
       ),
     );

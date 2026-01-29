@@ -19,11 +19,17 @@ class _InputScreenState extends State<InputScreen> {
   final _latitudeController = TextEditingController();
   final _longitudeController = TextEditingController();
   final _locationController = TextEditingController();
-  
+
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   bool _isLoading = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileAndPrefill();
+  }
 
   @override
   void dispose() {
@@ -33,6 +39,35 @@ class _InputScreenState extends State<InputScreen> {
     _longitudeController.dispose();
     _locationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadProfileAndPrefill() async {
+    final profile = await StorageService.getProfile();
+    if (!mounted) return;
+
+    if (profile.dateOfBirth != null) {
+      _selectedDate = profile.dateOfBirth;
+      _dateController.text =
+          DateFormat('dd/MM/yyyy').format(profile.dateOfBirth!);
+    }
+    if (profile.timeOfBirth.isNotEmpty) {
+      final parts = profile.timeOfBirth.split(':');
+      final hour = parts.isNotEmpty ? int.tryParse(parts[0]) ?? 12 : 12;
+      final minute = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
+      _selectedTime = TimeOfDay(hour: hour, minute: minute);
+      _timeController.text =
+          '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+    }
+    if (profile.latitude != null) {
+      _latitudeController.text = profile.latitude!.toString();
+    }
+    if (profile.longitude != null) {
+      _longitudeController.text = profile.longitude!.toString();
+    }
+    if (profile.locationName.isNotEmpty) {
+      _locationController.text = profile.locationName;
+    }
+    setState(() {});
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -58,7 +93,8 @@ class _InputScreenState extends State<InputScreen> {
     if (picked != null) {
       setState(() {
         _selectedTime = picked;
-        _timeController.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+        _timeController.text =
+            '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
       });
     }
   }
@@ -129,7 +165,7 @@ class _InputScreenState extends State<InputScreen> {
     try {
       final lat = double.parse(_latitudeController.text);
       final lon = double.parse(_longitudeController.text);
-      
+
       final birthDateTime = DateTime(
         _selectedDate!.year,
         _selectedDate!.month,
@@ -144,13 +180,14 @@ class _InputScreenState extends State<InputScreen> {
         latitude: lat,
         longitude: lon,
       );
-      final prokeralaSummary = ProkeralaKundliSummary.fromApiResponse(prokeralaRaw);
+      final prokeralaSummary =
+          ProkeralaKundliSummary.fromApiResponse(prokeralaRaw);
 
       // Build chart data from Prokerala response (no FreeAstro API).
       final kundaliData = ProkeralaApi.toKundaliData(prokeralaRaw);
 
       // Auto-save to history
-      final location = _locationController.text.isEmpty 
+      final location = _locationController.text.isEmpty
           ? 'Lat: $lat, Lon: $lon'
           : _locationController.text;
       await StorageService.saveKundali(
@@ -196,165 +233,168 @@ class _InputScreenState extends State<InputScreen> {
         elevation: 0,
       ),
       body: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _dateController,
-                  decoration: InputDecoration(
-                    labelText: 'Date of Birth',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    prefixIcon: const Icon(Icons.calendar_today_outlined),
+        padding: const EdgeInsets.all(20.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _dateController,
+                decoration: InputDecoration(
+                  labelText: 'Date of Birth',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
                   ),
-                  readOnly: true,
-                  onTap: () => _selectDate(context),
-                  validator: _validateDate,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  prefixIcon: const Icon(Icons.calendar_today_outlined),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _timeController,
-                  decoration: InputDecoration(
-                    labelText: 'Time of Birth',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    prefixIcon: const Icon(Icons.access_time_outlined),
+                readOnly: true,
+                onTap: () => _selectDate(context),
+                validator: _validateDate,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _timeController,
+                decoration: InputDecoration(
+                  labelText: 'Time of Birth',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
                   ),
-                  readOnly: true,
-                  onTap: () => _selectTime(context),
-                  validator: _validateTime,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  prefixIcon: const Icon(Icons.access_time_outlined),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _latitudeController,
-                  decoration: InputDecoration(
-                    labelText: 'Latitude',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    prefixIcon: const Icon(Icons.location_on_outlined),
+                readOnly: true,
+                onTap: () => _selectTime(context),
+                validator: _validateTime,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _latitudeController,
+                decoration: InputDecoration(
+                  labelText: 'Latitude',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  validator: _validateLatitude,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  prefixIcon: const Icon(Icons.location_on_outlined),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _longitudeController,
-                  decoration: InputDecoration(
-                    labelText: 'Longitude',
-                    hintText: '77.2090',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    prefixIcon: const Icon(Icons.location_on_outlined),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                validator: _validateLatitude,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _longitudeController,
+                decoration: InputDecoration(
+                  labelText: 'Longitude',
+                  hintText: '77.2090',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  validator: _validateLongitude,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  prefixIcon: const Icon(Icons.location_on_outlined),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _locationController,
-                  decoration: InputDecoration(
-                    labelText: 'Location (Optional)',
-                    hintText: 'New Delhi, India',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    prefixIcon: const Icon(Icons.place_outlined),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                validator: _validateLongitude,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _locationController,
+                decoration: InputDecoration(
+                  labelText: 'Location (Optional)',
+                  hintText: 'New Delhi, India',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
                   ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  prefixIcon: const Icon(Icons.place_outlined),
                 ),
-                const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _fetchKundali,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black87,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    elevation: 0,
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _fetchKundali,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black87,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.auto_awesome_outlined, size: 20),
-                            SizedBox(width: 8),
-                            Text(
-                              'Generate',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                            ),
-                          ],
+                  elevation: 0,
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
                         ),
-                ),
-                if (_errorMessage != null) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: Colors.red.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.error_outline, color: Colors.red.shade700),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _errorMessage!,
-                            style: TextStyle(color: Colors.red.shade700),
+                      )
+                    : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.auto_awesome_outlined, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Generate',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w500),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+              ),
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.red.shade200),
                   ),
-                ],
-                const SizedBox(height: 20),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red.shade700),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(color: Colors.red.shade700),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
-            ),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
+      ),
     );
   }
 }

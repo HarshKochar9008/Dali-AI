@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/kundali_data.dart';
 
 /// CustomPainter for rendering the kundali chart
-/// 
+///
 /// Implements a clean, readable, and scalable layout with:
 /// - 12 houses arranged in traditional North Indian style
 /// - Zodiac signs displayed per house
@@ -13,12 +13,20 @@ class KundaliPainter extends CustomPainter {
   final Color? backgroundColor;
   final Color? borderColor;
   final Color? houseColor;
+  final Color? houseFillColor;
+  final Color? textColor;
+  final Color? planetBadgeColor;
+  final Color? planetTextColor;
 
   KundaliPainter({
     required this.kundaliData,
     this.backgroundColor,
     this.borderColor,
     this.houseColor,
+    this.houseFillColor,
+    this.textColor,
+    this.planetBadgeColor,
+    this.planetTextColor,
   });
 
   @override
@@ -45,7 +53,7 @@ class KundaliPainter extends CustomPainter {
       ..strokeWidth = 1.5;
 
     final houseFillPaint = Paint()
-      ..color = Colors.orange.shade50
+      ..color = houseFillColor ?? Colors.orange.shade50
       ..style = PaintingStyle.fill;
 
     final dividerPaint = Paint()
@@ -62,7 +70,7 @@ class KundaliPainter extends CustomPainter {
     // Houses arranged in a 4x4 grid with center 2x2 empty
     // House 1 is at top center (position [1,0])
     // Houses arranged clockwise: 2,3,4,5,6,7,8,9,10,11,12
-    
+
     // House positions: [column, row] in 4x4 grid
     // House numbers in traditional order
     final housePositions = [
@@ -106,12 +114,15 @@ class KundaliPainter extends CustomPainter {
       final houseCenterX = x + houseWidth / 2;
       final houseCenterY = y + houseHeight / 2;
 
+      final numberColor = textColor ?? Colors.orange.shade900;
+      final signColor = textColor ?? Colors.orange.shade800;
+
       // Draw house number at top
       final houseNumberText = TextPainter(
         text: TextSpan(
           text: '$houseNum',
           style: TextStyle(
-            color: Colors.orange.shade900,
+            color: numberColor,
             fontSize: 14,
             fontWeight: FontWeight.bold,
             fontFamily: 'monospace',
@@ -135,7 +146,7 @@ class KundaliPainter extends CustomPainter {
           text: TextSpan(
             text: houseData.zodiacSign,
             style: TextStyle(
-              color: Colors.orange.shade800,
+              color: signColor,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -163,22 +174,23 @@ class KundaliPainter extends CustomPainter {
         final planetStartY = y + 42;
         final planetSpacing = 16.0;
         final maxPlanetsPerRow = 2;
-        
+
         for (int j = 0; j < planetsInHouse.length; j++) {
           final row = j ~/ maxPlanetsPerRow;
           final col = j % maxPlanetsPerRow;
-          
-          final planetX = houseCenterX + 
-              (col == 0 ? -houseWidth / 4 : houseWidth / 4) - 12;
+
+          final planetX =
+              houseCenterX + (col == 0 ? -houseWidth / 4 : houseWidth / 4) - 12;
           final planetY = planetStartY + (row * planetSpacing);
 
           // Draw planet badge
+          final planetFill = planetBadgeColor ?? Colors.yellow.shade600;
           final planetPaint = Paint()
-            ..color = Colors.yellow.shade600
+            ..color = planetFill
             ..style = PaintingStyle.fill;
 
           final planetBorderPaint = Paint()
-            ..color = Colors.orange.shade900
+            ..color = borderColor ?? Colors.orange.shade900
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.5;
 
@@ -195,11 +207,12 @@ class KundaliPainter extends CustomPainter {
           );
 
           // Draw planet abbreviation
+          final pTextColor = planetTextColor ?? Colors.black87;
           final planetText = TextPainter(
             text: TextSpan(
               text: planetsInHouse[j].name,
-              style: const TextStyle(
-                color: Colors.black87,
+              style: TextStyle(
+                color: pTextColor,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'monospace',
@@ -259,11 +272,12 @@ class KundaliPainter extends CustomPainter {
     canvas.drawRect(centerRect, centerBorderPaint);
 
     // Optional: Add title in center
+    final centerColor = textColor ?? Colors.orange;
     final centerText = TextPainter(
-      text: const TextSpan(
+      text: TextSpan(
         text: 'Kundali',
         style: TextStyle(
-          color: Colors.orange,
+          color: centerColor,
           fontSize: 16,
           fontWeight: FontWeight.bold,
         ),
@@ -286,6 +300,10 @@ class KundaliPainter extends CustomPainter {
     return oldDelegate.kundaliData != kundaliData ||
         oldDelegate.backgroundColor != backgroundColor ||
         oldDelegate.borderColor != borderColor ||
-        oldDelegate.houseColor != houseColor;
+        oldDelegate.houseColor != houseColor ||
+        oldDelegate.houseFillColor != houseFillColor ||
+        oldDelegate.textColor != textColor ||
+        oldDelegate.planetBadgeColor != planetBadgeColor ||
+        oldDelegate.planetTextColor != planetTextColor;
   }
 }

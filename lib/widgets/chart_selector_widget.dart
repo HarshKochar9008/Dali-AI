@@ -78,36 +78,43 @@ class _ChartSelectorWidgetState extends State<ChartSelectorWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Chart Type'),
+        _buildSectionTitle(context, 'Chart Type'),
         const SizedBox(height: 8),
-        _buildChartTypeSelector(),
+        _buildChartTypeSelector(context),
         const SizedBox(height: 24),
-        _buildSectionTitle('Chart Style'),
+        _buildSectionTitle(context, 'Chart Style'),
         const SizedBox(height: 8),
-        _buildChartStyleSelector(),
+        _buildChartStyleSelector(context),
       ],
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w600,
-        color: Colors.black87,
+        color: colorScheme.onSurface,
       ),
     );
   }
 
-  Widget _buildChartTypeSelector() {
+  Widget _buildChartTypeSelector(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color ?? colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+          color: isDark ? colorScheme.outline : Colors.grey.shade300,
+        ),
       ),
       child: DropdownButton<ChartType>(
+        dropdownColor: theme.cardTheme.color ?? colorScheme.surface,
         value: _selectedChartType,
         isExpanded: true,
         underline: const SizedBox(),
@@ -130,7 +137,10 @@ class _ChartSelectorWidgetState extends State<ChartSelectorWidget> {
     );
   }
 
-  Widget _buildChartStyleSelector() {
+  Widget _buildChartStyleSelector(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     return Row(
       children: ChartStyle.values.map((style) {
         final isSelected = _selectedChartStyle == style;
@@ -144,20 +154,21 @@ class _ChartSelectorWidgetState extends State<ChartSelectorWidget> {
                 setState(() {
                   _selectedChartStyle = style;
                 });
-                widget.onSelectionChanged(_selectedChartType, _selectedChartStyle);
+                widget.onSelectionChanged(
+                    _selectedChartType, _selectedChartStyle);
               },
               borderRadius: BorderRadius.circular(8),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.white,
+                      ? colorScheme.primary
+                      : (theme.cardTheme.color ?? colorScheme.surface),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isSelected
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.grey.shade300,
+                        ? colorScheme.primary
+                        : (isDark ? colorScheme.outline : Colors.grey.shade300),
                   ),
                 ),
                 child: Text(
@@ -165,7 +176,9 @@ class _ChartSelectorWidgetState extends State<ChartSelectorWidget> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontWeight: FontWeight.w500,
-                    color: isSelected ? Colors.white : Colors.black87,
+                    color: isSelected
+                        ? colorScheme.onPrimary
+                        : colorScheme.onSurface,
                   ),
                 ),
               ),
