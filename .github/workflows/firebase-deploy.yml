@@ -11,9 +11,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.27.0'
           channel: 'stable'
-      - run: flutter pub get && flutter build web --release
+      - name: Build web (with optional backend URL for production)
+        run: |
+          flutter pub get
+          if [ -n "${{ secrets.KUNDLI_PROXY_BASE_URL }}" ]; then
+            flutter build web --release --dart-define=KUNDLI_PROXY_BASE_URL=${{ secrets.KUNDLI_PROXY_BASE_URL }}
+          else
+            flutter build web --release
+          fi
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
