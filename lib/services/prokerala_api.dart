@@ -3,21 +3,34 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/kundali_data.dart';
-import '../models/planet_position.dart';
 
 class ProkeralaApi {
-  /// Base URL for the Node/Express proxy (NOT Prokerala directly).
+  /// Base URL for the backend (Render / Node proxy). Mobile APK must use full URL.
   ///
-  /// Override at build/run time:
-  /// `flutter run --dart-define=KUNDLI_PROXY_BASE_URL=http://localhost:3000`
-  /// For production (e.g. Render): set GitHub secret KUNDLI_PROXY_BASE_URL.
-  ///
-  /// Notes:
-  /// - Android emulator uses `http://10.0.2.2:3000`
-  /// - iOS simulator can use `http://localhost:3000`
+  /// Override for local/dev: flutter run --dart-define=KUNDLI_PROXY_BASE_URL=http://10.0.2.2:3000
   static String get _proxyBaseUrl {
     const env = String.fromEnvironment('KUNDLI_PROXY_BASE_URL', defaultValue: '');
-    return env.isEmpty ? 'http://localhost:3000' : env;
+    if (env.isNotEmpty) return env;
+    return 'https://dali-ai.onrender.com';
+  }
+
+  static const Duration _requestTimeout = Duration(seconds: 20);
+  static const int _maxRetries = 3;
+
+  /// GET with timeout and retry (Android is strict; cold starts can be slow).
+  static Future<http.Response> _getWithTimeoutAndRetry(Uri url) async {
+    Exception? lastError;
+    for (var attempt = 1; attempt <= _maxRetries; attempt++) {
+      try {
+        final response = await http.get(url).timeout(_requestTimeout);
+        return response;
+      } catch (e) {
+        lastError = e is Exception ? e : Exception(e.toString());
+        if (attempt == _maxRetries) rethrow;
+        await Future<void>.delayed(Duration(seconds: attempt));
+      }
+    }
+    throw lastError ?? Exception('Request failed after $_maxRetries attempts');
   }
 
   static String _formatTimezoneOffset(Duration offset) {
@@ -68,9 +81,7 @@ class ProkeralaApi {
     final url = Uri.parse('$_proxyBaseUrl/kundli')
         .replace(queryParameters: queryParameters);
 
-    final response = await http.get(
-      url,
-    );
+    final response = await _getWithTimeoutAndRetry(url);
 
     if (response.statusCode != 200) {
       String errorDetails = 'Unknown error';
@@ -146,9 +157,7 @@ class ProkeralaApi {
     final url = Uri.parse('$_proxyBaseUrl/charts')
         .replace(queryParameters: queryParameters);
 
-    final response = await http.get(
-      url,
-    );
+    final response = await _getWithTimeoutAndRetry(url);
 
     if (response.statusCode != 200) {
       throw Exception(
@@ -206,9 +215,7 @@ class ProkeralaApi {
     final url = Uri.parse('$_proxyBaseUrl/planet-position')
         .replace(queryParameters: queryParameters);
 
-    final response = await http.get(
-      url,
-    );
+    final response = await _getWithTimeoutAndRetry(url);
 
     if (response.statusCode != 200) {
       String errorDetails = 'Unknown error';
