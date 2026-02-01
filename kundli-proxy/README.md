@@ -12,7 +12,7 @@ npm start
 
 Runs at `http://localhost:3000`. Point the Flutter app at this URL when running locally.
 
-## Deploy for free on Render.com
+## Deploy for free on Render.com and use your backend
 
 1. Sign up at [render.com](https://render.com) (free).
 2. **New → Web Service**.
