@@ -10,14 +10,15 @@ class ProkeralaApi {
   ///
   /// Override at build/run time:
   /// `flutter run --dart-define=KUNDLI_PROXY_BASE_URL=http://localhost:3000`
+  /// For production (e.g. Render): set GitHub secret KUNDLI_PROXY_BASE_URL.
   ///
   /// Notes:
   /// - Android emulator uses `http://10.0.2.2:3000`
   /// - iOS simulator can use `http://localhost:3000`
-  static const String _proxyBaseUrl = String.fromEnvironment(
-    'KUNDLI_PROXY_BASE_URL',
-    defaultValue: 'http://localhost:3000',
-  );
+  static String get _proxyBaseUrl {
+    const env = String.fromEnvironment('KUNDLI_PROXY_BASE_URL', defaultValue: '');
+    return env.isEmpty ? 'http://localhost:3000' : env;
+  }
 
   static String _formatTimezoneOffset(Duration offset) {
     // Prokerala expects an explicit offset like +05:30 (not a bare local time).

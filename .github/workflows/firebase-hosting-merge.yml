@@ -16,7 +16,13 @@ jobs:
           flutter-version: '3.27.0'
           channel: 'stable'
       - run: flutter pub get
-      - run: flutter build web --release
+      - name: Build web (with optional backend URL for production)
+        run: |
+          if [ -n "${{ secrets.KUNDLI_PROXY_BASE_URL }}" ]; then
+            flutter build web --release --dart-define=KUNDLI_PROXY_BASE_URL=${{ secrets.KUNDLI_PROXY_BASE_URL }}
+          else
+            flutter build web --release
+          fi
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

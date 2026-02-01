@@ -3,14 +3,13 @@ const axios = require("axios");
 
 const PROKERALA_BASE_URL = "https://api.prokerala.com";
 
-const getConfig = () => {
-  const config = functions.config().prokerala || {};
-  return {
-    clientId: config.client_id || process.env.PROKERALA_CLIENT_ID,
-    clientSecret: config.client_secret || process.env.PROKERALA_CLIENT_SECRET,
-    sandboxMode: (config.sandbox_mode || process.env.SANDBOX_MODE || "true").toLowerCase() === "true",
-  };
-};
+// Uses environment variables (set in functions/.env or Firebase Console).
+// See: https://firebase.google.com/docs/functions/config-env
+const getConfig = () => ({
+  clientId: process.env.PROKERALA_CLIENT_ID,
+  clientSecret: process.env.PROKERALA_CLIENT_SECRET,
+  sandboxMode: (process.env.SANDBOX_MODE || process.env.PROKERALA_SANDBOX || "true").toLowerCase() === "true",
+});
 
 let cachedToken = null;
 let tokenExpiry = 0;
