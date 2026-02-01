@@ -23,10 +23,9 @@ const logger = require("firebase-functions/logger");
 // this will be the maximum concurrent request count.
 setGlobalOptions({ maxInstances: 10 });
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+// Import the kundli proxy functions
+const {kundli, planetPosition} = require("./kundli-proxy");
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+// Export the functions
+exports.kundli = kundli;
+exports.planetPosition = planetPosition;

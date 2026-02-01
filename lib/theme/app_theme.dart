@@ -23,7 +23,7 @@ abstract class AppTheme {
           backgroundColor: AppColors.headerViolet,
           foregroundColor: Colors.white,
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 0,
           color: AppColors.cardDark,
           shape: RoundedRectangleBorder(
@@ -94,7 +94,7 @@ abstract class AppTheme {
           backgroundColor: AppColors.headerViolet,
           foregroundColor: Colors.white,
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 0,
           color: Colors.white,
           shape: RoundedRectangleBorder(
