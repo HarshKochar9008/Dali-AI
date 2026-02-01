@@ -134,6 +134,49 @@ curl -H "Authorization: Bearer <ACCESS_TOKEN>" \
    - For Chrome/desktop: `flutter run -d chrome --dart-define=KUNDLI_PROXY_BASE_URL=http://localhost:3000`
 5. Enter birth details on the input screen and tap **Generate** to fetch kundali data and view the custom-drawn North Indian chart.
 
+## Building and deployment
+
+### APK (Android)
+
+A release APK has been built and is at:
+
+- **Path:** `build/app/outputs/flutter-apk/app-release.apk` (about 52 MB)
+
+To build again:
+
+```bash
+flutter clean
+flutter pub get
+flutter build apk --release
+```
+
+To build a **split APK** (smaller per-ABI):  
+`flutter build apk --release --split-per-abi`
+
+### Live deployment options
+
+1. **Google Play Store**  
+   - Build an **App Bundle** for Play:  
+     `flutter build appbundle --release`  
+   - Output: `build/app/outputs/bundle/release/app-release.aab`  
+   - Upload in [Google Play Console](https://play.google.com/console).
+
+2. **Firebase App Distribution**  
+   - Install [Firebase CLI](https://firebase.google.com/docs/cli) and run `firebase login`.  
+   - In the project: `firebase init` → App Distribution.  
+   - Distribute the APK:  
+     `firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk --app YOUR_FIREBASE_APP_ID`.
+
+3. **Web (live URL)**  
+   - Build for web:  
+     `flutter build web --release`  
+   - Deploy the `build/web` folder to:
+     - **Firebase Hosting:** `firebase init hosting` then `firebase deploy`
+     - **Vercel / Netlify:** Connect the repo and set build output to `build/web`, or upload the folder manually.
+
+4. **Direct APK sharing**  
+   - Share `app-release.apk` via link or file transfer. Users must allow “Install from unknown sources” (or install from a store) to use it.
+
 ## Validation (vs app.atri.care)
 
 **Birth details used for validation:**

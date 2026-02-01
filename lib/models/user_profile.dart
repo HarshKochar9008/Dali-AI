@@ -1,5 +1,6 @@
 class UserProfile {
   final String fullName;
+  final String email; // optional email
   final String gender; // 'Male' | 'Female' | 'Other' | ''
   final DateTime? dateOfBirth;
   final String timeOfBirth; // HH:mm (24h) or ''
@@ -10,6 +11,7 @@ class UserProfile {
 
   const UserProfile({
     required this.fullName,
+    this.email = '',
     required this.gender,
     required this.dateOfBirth,
     required this.timeOfBirth,
@@ -21,6 +23,7 @@ class UserProfile {
 
   static const empty = UserProfile(
     fullName: '',
+    email: '',
     gender: '',
     dateOfBirth: null,
     timeOfBirth: '',
@@ -33,6 +36,7 @@ class UserProfile {
   Map<String, dynamic> toJson() {
     return {
       'fullName': fullName,
+      'email': email,
       'gender': gender,
       'dateOfBirth': dateOfBirth?.toIso8601String(),
       'timeOfBirth': timeOfBirth,
@@ -52,6 +56,7 @@ class UserProfile {
 
     return UserProfile(
       fullName: (json['fullName'] ?? '') as String,
+      email: (json['email'] ?? '') as String,
       gender: (json['gender'] ?? '') as String,
       dateOfBirth: parsedDob,
       timeOfBirth: (json['timeOfBirth'] ?? '') as String,

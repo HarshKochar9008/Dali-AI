@@ -16,6 +16,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _dobController = TextEditingController();
   final _tobController = TextEditingController();
@@ -42,6 +43,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
     _phoneController.dispose();
     _dobController.dispose();
     _tobController.dispose();
@@ -63,6 +65,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (!mounted) return;
 
     _nameController.text = profile.fullName;
+    _emailController.text = profile.email;
     _phoneController.text = profile.phone;
     _gender = profile.gender;
 
@@ -180,6 +183,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     final profile = UserProfile(
       fullName: _nameController.text.trim(),
+      email: _emailController.text.trim(),
       gender: _gender,
       dateOfBirth: _selectedDob,
       timeOfBirth: _tobController.text.trim(),
@@ -296,6 +300,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           prefixIcon: Icon(Icons.person_outline),
                         ),
                         validator: _validateName,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Email (optional)',
+                          prefixIcon: Icon(Icons.email_outlined),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextFormField(

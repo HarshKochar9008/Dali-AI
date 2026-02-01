@@ -18,4 +18,7 @@ abstract class AppColors {
 
   /// Unselected / secondary text (dark)
   static const Color unselectedDark = Color(0xFF6967A6);
+
+  /// Chart area background (paper/cream for readability)
+  static const Color chartBackground = Color(0xFFF5F0E6);
 }
