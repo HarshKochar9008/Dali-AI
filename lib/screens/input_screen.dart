@@ -373,12 +373,12 @@ class _InputScreenState extends State<InputScreen> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.red.withValues(alpha: 0.15)
+                        ? Colors.red.withOpacity(0.15)
                         : Colors.red.shade50,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isDark
-                          ? Colors.red.withValues(alpha: 0.5)
+                          ? Colors.red.withOpacity(0.5)
                           : Colors.red.shade200,
                     ),
                   ),
@@ -440,11 +440,11 @@ class _InputScreenState extends State<InputScreen> {
           decoration: InputDecoration(
             labelText: label,
             hintText: hintText,
-            hintStyle: TextStyle(color: AppColors.unselectedDark.withValues(alpha: 0.8)),
+            hintStyle: TextStyle(color: AppColors.unselectedDark.withOpacity(0.8)),
             labelStyle: TextStyle(color: AppColors.unselectedDark),
             prefixIcon: Icon(
               icon,
-              color: AppColors.accentViolet.withValues(alpha: 0.9),
+              color: AppColors.accentViolet.withOpacity(0.9),
               size: 22,
             ),
             filled: true,

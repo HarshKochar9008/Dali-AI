@@ -223,7 +223,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             setState(() => _darkAppearance = value);
                           },
                           activeTrackColor: colorScheme.primary.withOpacity(0.5),
-                          activeThumbColor: colorScheme.primary,
+                          activeColor: colorScheme.primary,
                         ),
                       ),
                       _divider(context),
@@ -419,7 +419,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: TextStyle(color: colorScheme.onSurface.withOpacity(0.8)),
                 ),
                 activeTrackColor: colorScheme.primary.withOpacity(0.5),
-                activeThumbColor: colorScheme.primary,
+                activeColor: colorScheme.primary,
               ),
               actions: [
                 TextButton(
